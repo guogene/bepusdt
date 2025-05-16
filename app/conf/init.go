@@ -4,13 +4,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/pelletier/go-toml/v2"
-	"github.com/shopspring/decimal"
-	"github.com/spf13/cast"
 	"math"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pelletier/go-toml/v2"
+	"github.com/shopspring/decimal"
+	"github.com/spf13/cast"
 )
 
 const defaultExpireTime = 600     // 订单默认有效期 10分钟
@@ -50,6 +51,10 @@ func Init() {
 
 		panic("配置数据解析失败：" + err.Error())
 	}
+}
+
+func GetAdminAuth() string {
+	return cfg.AdminAuth
 }
 
 func GetUsdtRate() string {

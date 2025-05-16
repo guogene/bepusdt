@@ -1,13 +1,14 @@
 package web
 
 import (
+	"html/template"
+	"io/fs"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/v03413/bepusdt/app/conf"
 	"github.com/v03413/bepusdt/app/log"
 	"github.com/v03413/bepusdt/static"
-	"html/template"
-	"io/fs"
-	"net/http"
 )
 
 func Start() {
@@ -45,6 +46,27 @@ func Start() {
 		engine.GET("/submit.php", epaySubmit)
 	}
 
+	// 管理后台页面
+	// engine.GET("/admin/login", func(c *gin.Context) {
+	// 	c.File("views/admin/login.html")
+	// })
+	// engine.GET("/admin/dashboard", func(c *gin.Context) {
+	// 	c.File("admin/dashboard.html")
+	// })
+
+	// 管理后台API
+	adminGrp := engine.Group("/api/admin")
+	{
+		adminGrp.POST("/login", AdminLogin)
+
+		// 需要登录验证的接口
+		adminGrp.Use(AdminAuth())
+		{
+			adminGrp.GET("/orders", GetOrders)
+			adminGrp.GET("/records", GetRecords)
+		}
+	}
+
 	log.Info("WEB尝试启动 Listen: ", listen)
 	go func() {
 		err := engine.Run(listen)
@@ -63,6 +85,7 @@ func loadStatic(engine *gin.Engine) *gin.Engine {
 		engine.Static("/css", conf.GetStaticPath()+"/css")
 		engine.Static("/js", conf.GetStaticPath()+"/js")
 		engine.LoadHTMLGlob(conf.GetStaticPath() + "/views/*")
+		// engine.LoadHTMLGlob(conf.GetStaticPath() + "/views/admin/*")
 
 		return engine
 	}
@@ -70,6 +93,7 @@ func loadStatic(engine *gin.Engine) *gin.Engine {
 	engine.StaticFS("/img", http.FS(subFs(static.Img, "img")))
 	engine.StaticFS("/css", http.FS(subFs(static.Css, "css")))
 	engine.StaticFS("/js", http.FS(subFs(static.Js, "js")))
+	engine.StaticFS("/admin", http.FS(subFs(static.Views, "views/admin")))
 	engine.SetHTMLTemplate(template.Must(template.New("").ParseFS(static.Views, "views/*.html")))
 
 	return engine

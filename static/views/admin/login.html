@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 登录</title>
+    <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-container {
+            width: 400px;
+            padding: 30px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+        }
+        .login-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #409EFF;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="login-container">
+            <h2 class="login-title">管理后台登录</h2>
+            <el-form :model="loginForm" :rules="rules" ref="loginFormRef">
+                <el-form-item prop="username">
+                    <el-input v-model="loginForm.username" placeholder="用户名" prefix-icon="el-icon-user"></el-input>
+                </el-form-item>
+                <el-form-item prop="password">
+                    <el-input v-model="loginForm.password" type="password" placeholder="密码" prefix-icon="el-icon-lock"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" style="width: 100%" @click="handleLogin" :loading="loading">登录</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+    </div>
+
+    <script src="//unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="//unpkg.com/element-plus"></script>
+    <script>
+        const { createApp, ref } = Vue;
+        const app = createApp({
+            setup() {
+                const loginForm = ref({
+                    username: '',
+                    password: ''
+                });
+                const loginFormRef = ref(null);  // 添加表单引用
+                const loading = ref(false);
+                const rules = {
+                    username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+                    password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+                };
+    
+                const handleLogin = async () => {
+                    try {
+                        // 验证表单
+                        await loginFormRef.value.validate();
+                        
+                        loading.value = true;
+                        const response = await fetch('/api/admin/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(loginForm.value)
+                        });
+                        const data = await response.json();
+                        if (data.code === 0) {
+                            localStorage.setItem('admin_token', data.data.token);
+                            window.location.href = '/admin/dashboard.html';
+                        } else {
+                            ElementPlus.ElMessage.error(data.message || '登录失败');
+                        }
+                    } catch (error) {
+                        if(error.name !== 'ValidationError') {
+                            ElementPlus.ElMessage.error('网络错误');
+                        }
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+    
+                return {
+                    loginForm,
+                    loginFormRef,  // 暴露表单引用
+                    loading,
+                    rules,
+                    handleLogin
+                };
+            }
+        });
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>

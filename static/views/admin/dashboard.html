@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台</title>
+    <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+        #app {
+            height: 100vh;
+        }
+        .el-container {
+            height: 100%;
+        }
+        .el-aside {
+            background-color: #304156;
+            color: #fff;
+            width: 200px !important;
+        }
+        .el-menu {
+            border-right: none;
+        }
+        .el-header {
+            background-color: #fff;
+            color: #333;
+            line-height: 60px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        .el-main {
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .logout-btn {
+            float: right;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <el-container>
+            <el-aside>
+                <el-menu
+                    default-active="1"
+                    background-color="#304156"
+                    text-color="#fff"
+                    active-text-color="#409EFF"
+                    @select="handleSelect"
+                >
+                    <el-menu-item index="1">
+                        <el-icon><document /></el-icon>
+                        <span>订单列表</span>
+                    </el-menu-item>
+                    <el-menu-item index="2">
+                        <el-icon><tickets /></el-icon>
+                        <span>交易记录</span>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+            <el-container>
+                <el-header>
+                    <span class="header-title">管理后台</span>
+                    <el-button type="danger" size="small" class="logout-btn" @click="handleLogout">退出登录</el-button>
+                </el-header>
+                <el-main>
+                    <!-- 订单列表 -->
+                    <div v-if="activeIndex === '1'">
+                        <el-table :data="orders" style="width: 100%" v-loading="loading">
+                            <el-table-column prop="OrderId" label="商户订单"  width="250"></el-table-column>
+                            <el-table-column prop="TradeId" label="本地ID"  width="200"></el-table-column>
+                            <el-table-column prop="TradeType" label="交易类型" width="100"></el-table-column>
+                            <el-table-column prop="Amount" label="交易数额" width="120"></el-table-column>
+                            <el-table-column prop="Money" label="订单金额" width="120"></el-table-column>
+                            <el-table-column prop="Status" label="状态" width="100">
+                                <template #default="scope">
+                                    <el-tag :type="scope.row.Status === 1 ? 'warning' : scope.row.Status === 2 ? 'success' : 'info'">
+                                        {{ scope.row.Status === 1 ? '待支付' : scope.row.Status === 2 ? '已支付' : '已过期' }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="CreatedAt" label="创建时间"></el-table-column>
+                        </el-table>
+                        <div class="pagination-container" style="margin-top: 20px; text-align: right;">
+                            <el-pagination
+                                v-model:current-page="currentPage"
+                                v-model:page-size="pageSize"
+                                :page-sizes="[10, 20, 50, 100]"
+                                layout="total, sizes, prev, pager, next"
+                                :total="total"
+                                @size-change="handleSizeChange"
+                                @current-change="handleCurrentChange"
+                            ></el-pagination>
+                        </div>
+                    </div>
+                    <!-- 交易记录 -->
+                    <div v-if="activeIndex === '2'">
+                        <el-table :data="records" style="width: 100%" v-loading="loading">
+                            <el-table-column prop="Txid" label="交易哈希" ></el-table-column>
+                            <el-table-column prop="CreatedAt" label="创建时间" ></el-table-column>
+                            <el-table-column prop="UpdatedAt" label="更新时间" ></el-table-column>
+                        </el-table>
+                        <div class="pagination-container" style="margin-top: 20px; text-align: right;">
+                            <el-pagination
+                                v-model:current-page="currentPage"
+                                v-model:page-size="pageSize"
+                                :page-sizes="[10, 20, 50, 100]"
+                                layout="total, sizes, prev, pager, next"
+                                :total="total"
+                                @size-change="handleSizeChange"
+                                @current-change="handleCurrentChange"
+                            ></el-pagination>
+                        </div>
+                    </div>
+                </el-main>
+            </el-container>
+        </el-container>
+    </div>
+
+    <script src="//unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="//unpkg.com/element-plus"></script>
+    <script src="//unpkg.com/@element-plus/icons-vue"></script>
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        const app = createApp({
+            setup() {
+                const activeIndex = ref('1');
+                const loading = ref(false);
+                const orders = ref([]);
+                const records = ref([]);
+                const currentPage = ref(1);
+                const pageSize = ref(10);
+                const total = ref(0);
+
+                const fetchOrders = async () => {
+                    loading.value = true;
+                    try {
+                        const response = await fetch(`/api/admin/orders?page=${currentPage.value}&size=${pageSize.value}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.code === 0) {
+                            orders.value = data.data.items;
+                            total.value = data.data.total;
+                        } else {
+                            ElementPlus.ElMessage.error(data.message || '获取订单列表失败');
+                        }
+                    } catch (error) {
+                        ElementPlus.ElMessage.error('网络错误');
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const fetchRecords = async () => {
+                    loading.value = true;
+                    try {
+                        const response = await fetch(`/api/admin/records?page=${currentPage.value}&size=${pageSize.value}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.code === 0) {
+                            records.value = data.data.items;
+                            total.value = data.data.total;
+                        } else {
+                            ElementPlus.ElMessage.error(data.message || '获取交易记录失败');
+                        }
+                    } catch (error) {
+                        ElementPlus.ElMessage.error('网络错误');
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const handleSelect = (index) => {
+                    activeIndex.value = index;
+                    currentPage.value = 1;
+                    if (index === '1') {
+                        fetchOrders();
+                    } else {
+                        fetchRecords();
+                    }
+                };
+
+                const handleSizeChange = (val) => {
+                    pageSize.value = val;
+                    currentPage.value = 1;
+                    if (activeIndex.value === '1') {
+                        fetchOrders();
+                    } else {
+                        fetchRecords();
+                    }
+                };
+
+                const handleCurrentChange = (val) => {
+                    currentPage.value = val;
+                    if (activeIndex.value === '1') {
+                        fetchOrders();
+                    } else {
+                        fetchRecords();
+                    }
+                };
+
+                const handleLogout = () => {
+                    localStorage.removeItem('admin_token');
+                    window.location.href = '/views/admin/login.html';
+                };
+
+                onMounted(() => {
+                    const token = localStorage.getItem('admin_token');
+                    if (!token) {
+                        window.location.href = '/views/admin/login.html';
+                        return;
+                    }
+                    fetchOrders();
+                });
+
+                return {
+                    activeIndex,
+                    loading,
+                    orders,
+                    records,
+                    currentPage,
+                    pageSize,
+                    total,
+                    handleSelect,
+                    handleSizeChange,
+                    handleCurrentChange,
+                    handleLogout
+                };
+            }
+        });
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>

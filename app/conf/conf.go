@@ -1,6 +1,7 @@
 package conf
 
 type Conf struct {
+	AdminAuth          string `toml:"admin_auth"`
 	AppUri             string `toml:"app_uri"`
 	AuthToken          string `toml:"auth_token"`
 	Listen             string `toml:"listen"`
