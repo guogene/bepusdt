@@ -77,6 +77,13 @@
                         <el-table :data="orders" style="width: 100%" v-loading="loading">
                             <el-table-column prop="OrderId" label="商户订单"  width="250"></el-table-column>
                             <el-table-column prop="TradeId" label="本地ID"  width="200"></el-table-column>
+                            <el-table-column prop="Address" label="钱包地址"  >
+                                <template #default="scope">
+                                    <a :href="'https://tronscan.org/#/address/' + scope.row.Address + '/transfers'" target="_blank">
+                                        {{ scope.row.Address }}
+                                    </a>
+                                </template>
+                            </el-table-column>
                             <el-table-column prop="TradeType" label="交易类型" width="100"></el-table-column>
                             <el-table-column prop="Amount" label="交易数额" width="120"></el-table-column>
                             <el-table-column prop="Money" label="订单金额" width="120"></el-table-column>
@@ -88,6 +95,7 @@
                                 </template>
                             </el-table-column>
                             <el-table-column prop="CreatedAt" label="创建时间"></el-table-column>
+                            <el-table-column prop="ExpiredAt" label="交易过期时间"  ></el-table-column>
                         </el-table>
                         <div class="pagination-container" style="margin-top: 20px; text-align: right;">
                             <el-pagination
